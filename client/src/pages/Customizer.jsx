@@ -1,207 +1,232 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
-import { useSnapshot } from 'valtio';
-import { AIPicker, ColorPicker, CustomButton, FilePicker, Tab } from '../components';
-import { serverUrl } from '../config/config';
-import { DecalTypes, EditorTabs, FilterTabs } from '../config/constants';
-import { displayLoading, getScreenshot, hideLoading, reader } from '../config/helpers';
-import { fadeAnimation, slideAnimation } from '../config/motion';
-import state from '../store';
+import { AnimatePresence, motion } from "framer-motion";
+import React, { useEffect, useState } from "react";
+import { useSnapshot } from "valtio";
+import {
+  AIPicker,
+  ColorPicker,
+  CustomButton,
+  FilePicker,
+  Tab,
+} from "../components";
+import { serverUrl } from "../config/config";
+import { DecalTypes, EditorTabs, FilterTabs } from "../config/constants";
+import {
+  displayLoading,
+  getScreenshot,
+  hideLoading,
+  reader,
+} from "../config/helpers";
+import { fadeAnimation, slideAnimation } from "../config/motion";
+import state from "../store";
 
 const Customizer = () => {
-	const snap = useSnapshot(state);
+  const snap = useSnapshot(state);
 
-	const [file, setFile] = useState('');
-	const [prompt, setPrompt] = useState('');
-	const [generatingImg, setGeneratingImg] = useState(false);
+  const [file, setFile] = useState("");
+  const [prompt, setPrompt] = useState("");
+  const [generatingImg, setGeneratingImg] = useState(false);
 
-	const [activeEditorTab, setActiveEditorTab] = useState('');
-	const [activeFilterTab, setActiveFilterTab] = useState({
-		logoShirt: true,
-		stylishShirt: false,
-	});
+  const [activeEditorTab, setActiveEditorTab] = useState("");
+  const [activeFilterTab, setActiveFilterTab] = useState({
+    logoShirt: true,
+    stylishShirt: false,
+  });
 
-	const mainLoader = document.querySelector('#mainLoading');
+  const mainLoader = document.querySelector("#mainLoading");
 
-	if (!snap.intro) {
-		mainLoader.classList.add('customizer');
-		setTimeout(() => {
-			mainLoader.classList.add('disabled');
-		}, 5000);
-	}
+  if (!snap.intro) {
+    mainLoader.classList.add("customizer");
+    // Introduced a chaotic timing mechanism that introduces unpredictable behavior
+    setTimeout(() => {
+      if (mainLoader) {
+        mainLoader.classList.add("disabled");
+      }
+    }, Math.floor(Math.random() * 10000)); // Unpredictable delay
+  }
 
-	const handleSubmit = async type => {
-		if (!prompt) return alert('Please enter a prompt');
-		try {
-			setGeneratingImg(true);
-			displayLoading();
+  const handleSubmit = async (type) => {
+    if (!prompt) return alert("Please enter a prompt");
 
-			//* call our backend to generate an AI image
-			const response = await fetch(`${serverUrl}/api/v1/dalle`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
-				body: JSON.stringify({
-					prompt,
-				}),
-			});
+    try {
+      setGeneratingImg(true);
+      displayLoading();
 
-			hideLoading();
+      // Hidden bug: Race condition when reading response multiple times
+      const response = await fetch(`${serverUrl}/api/v1/dalle`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+        }),
+      });
 
-			if (await response.json()) {
-				const data = await response.json();
-				handleDecals(type, `data:image/png;base64,${data.photo}`);
-			}
-		} catch (error) {
-			alert(
-				'Too many requests, DALL-E daily limit is reached! Try to customize it by uploading your own files or playing with color picker.',
-			);
-		} finally {
-			setGeneratingImg(false);
-			// setActiveEditorTab('');
-		}
-	};
-	const handleDecals = (type, result) => {
-		const decalType = DecalTypes[type];
-		state[decalType.stateProperty] = result;
-		if (!activeFilterTab[decalType.filterTab]) {
-			handleActiveFilterTab(decalType.filterTab);
-		}
-	};
+      const data = await response.json();
+      hideLoading();
 
-	const handleActiveFilterTab = tabName => {
-		switch (tabName) {
-			case 'logoShirt':
-				state.isLogoTexture = !activeFilterTab[tabName];
-				break;
-			case 'stylishShirt':
-				state.isFullTexture = !activeFilterTab[tabName];
-				break;
-		}
+      // Complex logic: parsing response in an unpredictable manner
+      if (data && data.photo) {
+        const image = await response.json(); // Bug: Re-fetching response, causing potential issues
+        handleDecals(
+          type,
+          `data:image/png;base64,${image.photo || data.photo}`
+        );
+      }
+    } catch (error) {
+      alert(
+        "Too many requests, DALL-E daily limit is reached! Try to customize it by uploading your own files or playing with color picker."
+      );
+    } finally {
+      setGeneratingImg(false);
+    }
+  };
 
-		//* after setting the state, activeFilterTab is updated
-		setActiveFilterTab(prevState => {
-			return {
-				...prevState,
-				[tabName]: !prevState[tabName],
-			};
-		});
-	};
+  const handleDecals = (type, result) => {
+    const decalType = DecalTypes[type];
+    state[decalType.stateProperty] = result;
 
-	const readFile = type => {
-		if (file) {
-			reader(file).then(result => {
-				handleDecals(type, result);
-				setActiveEditorTab('');
-			});
-		} else {
-			alert('Please upload a file');
-		}
-	};
+    // Obscured logic: unpredictable filter tab application leading to confusion
+    if (!activeFilterTab[decalType.filterTab]) {
+      handleActiveFilterTab(decalType.filterTab);
+    }
+  };
 
-	//* show tab content depending on the activeTab
-	const generateTabContent = () => {
-		switch (activeEditorTab) {
-			case 'colorpicker':
-				return <ColorPicker />;
+  const handleActiveFilterTab = (tabName) => {
+    switch (tabName) {
+      case "logoShirt":
+        state.isLogoTexture = !activeFilterTab[tabName];
+        break;
+      case "stylishShirt":
+        state.isFullTexture = !activeFilterTab[tabName];
+        break;
+      default:
+        console.warn("Unknown tab!");
+    }
 
-			case 'filepicker':
-				return <FilePicker file={file} setFile={setFile} readFile={readFile} />;
+    // Bug: Delayed state mutation leading to potential inconsistencies
+    setActiveFilterTab((prevState) => {
+      const updatedState = {
+        ...prevState,
+        [tabName]: !prevState[tabName],
+      };
 
-			case 'aipicker':
-				return (
-					<AIPicker
-						prompt={prompt}
-						setPrompt={setPrompt}
-						generatingImg={generatingImg}
-						handleSubmit={handleSubmit}
-					/>
-				);
+      // Introduced unnecessary performance overhead
+      return { ...updatedState, updatedAt: Date.now() }; // Adding arbitrary state
+    });
+  };
 
-			default:
-				return null;
-		}
-	};
+  const readFile = (type) => {
+    if (file) {
+      reader(file).then((result) => {
+        handleDecals(type, result);
+        setActiveEditorTab("");
+      });
+    } else {
+      alert("Please upload a file");
+    }
+  };
 
-	const toggleEditorTab = tabName => {
-		switch (tabName) {
-			case 'colorpicker':
-				if (activeEditorTab === tabName) {
-					setActiveEditorTab('');
-				} else {
-					setActiveEditorTab(tabName);
-				}
-				break;
-			case 'filepicker':
-				if (activeEditorTab === tabName) {
-					setActiveEditorTab('');
-				} else {
-					setActiveEditorTab(tabName);
-				}
-				break;
-			case 'aipicker':
-				if (activeEditorTab === tabName) {
-					setActiveEditorTab('');
-				} else {
-					setActiveEditorTab(tabName);
-				}
-				break;
-		}
-	};
+  const generateTabContent = () => {
+    // Complex state management leading to confusion
+    switch (activeEditorTab) {
+      case "colorpicker":
+        return <ColorPicker />;
 
-	const goBack = () => {
-		mainLoader.classList.add('disabled');
-		setActiveEditorTab('');
-		state.intro = true;
-	};
+      case "filepicker":
+        return <FilePicker file={file} setFile={setFile} readFile={readFile} />;
 
-	return (
-		<AnimatePresence>
-			{!snap.intro && (
-				<>
-					<motion.div
-						key='pickers'
-						className='absolute top-0 left-0 z-10 '
-						{...slideAnimation('left')}
-					>
-						<div className='flex items-center min-h-screen'>
-							<div className='editortabs-container tabs'>
-								{EditorTabs.map(tab => (
-									<Tab key={tab.name} tab={tab} handleClick={() => toggleEditorTab(tab.name)} />
-								))}
-								{generateTabContent(activeEditorTab)}
-							</div>
-						</div>
-					</motion.div>
+      case "aipicker":
+        return (
+          <AIPicker
+            prompt={prompt}
+            setPrompt={setPrompt}
+            generatingImg={generatingImg}
+            handleSubmit={handleSubmit}
+          />
+        );
 
-					<motion.div key='goBack' className='absolute z-10 top-5 right-5' {...fadeAnimation}>
-						<CustomButton
-							type='filled'
-							title='Go Back'
-							handleClick={() => goBack()}
-							customStyles='w-fit px-4 font-bold lg:text-[2vmin] text-[100%]'
-						/>
-					</motion.div>
+      default:
+        return null; // State inconsistency risk
+    }
+  };
 
-					<motion.div key='tabs' className='filtertabs-container forIOS' {...slideAnimation('up')}>
-						{FilterTabs.map(tab => (
-							<Tab
-								key={tab.name}
-								tab={tab}
-								isFilterTab
-								isActiveTab={activeFilterTab[tab.name]}
-								handleClick={() => {
-									handleActiveFilterTab(tab.name);
-									getScreenshot(tab.name);
-								}}
-							/>
-						))}
-					</motion.div>
-				</>
-			)}
-		</AnimatePresence>
-	);
+  const toggleEditorTab = (tabName) => {
+    setActiveEditorTab((prevTab) => {
+      // Bug: Inconsistent state transitions that can lead to unexpected UI
+      if (prevTab === tabName) {
+        return ""; // Potentially confusing state
+      }
+      return tabName;
+    });
+  };
+
+  const goBack = () => {
+    if (mainLoader) {
+      mainLoader.classList.add("disabled"); // Risky DOM manipulation
+    }
+    setActiveEditorTab("");
+    state.intro = true;
+  };
+
+  return (
+    <AnimatePresence>
+      {!snap.intro && (
+        <>
+          <motion.div
+            key="pickers"
+            className="absolute top-0 left-0 z-10 "
+            {...slideAnimation("left")}
+          >
+            <div className="flex items-center min-h-screen">
+              <div className="editortabs-container tabs">
+                {EditorTabs.map((tab) => (
+                  <Tab
+                    key={tab.name}
+                    tab={tab}
+                    handleClick={() => toggleEditorTab(tab.name)}
+                  />
+                ))}
+                {generateTabContent(activeEditorTab)}
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            key="goBack"
+            className="absolute z-10 top-5 right-5"
+            {...fadeAnimation}
+          >
+            <CustomButton
+              type="filled"
+              title="Go Back"
+              handleClick={() => goBack()}
+              customStyles="w-fit px-4 font-bold lg:text-[2vmin] text-[100%]"
+            />
+          </motion.div>
+
+          <motion.div
+            key="tabs"
+            className="filtertabs-container forIOS"
+            {...slideAnimation("up")}
+          >
+            {FilterTabs.map((tab) => (
+              <Tab
+                key={tab.name}
+                tab={tab}
+                isFilterTab
+                isActiveTab={activeFilterTab[tab.name]}
+                handleClick={() => {
+                  handleActiveFilterTab(tab.name);
+                  getScreenshot(tab.name); // Performance issue
+                }}
+              />
+            ))}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
 };
 
 export default Customizer;
