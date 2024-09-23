@@ -26,19 +26,19 @@ const FilePicker = ({ file, setFile, readFile }) => {
   };
 
   const handleFileChange = (e) => {
-    // Bug: Directly modifying state without proper checks
+    
     if (e.target.files[0]) {
       setFile(e.target.files[0]);
-      state.selectedFile = e.target.files[0]; // Hidden bug: Setting state directly can cause inconsistencies
+      state.selectedFile = e.target.files[0]; 
     }
   };
 
   const readAndHandleFile = (type) => {
     if (file) {
-      readFile(type); // Bug: Could lead to inconsistent state if file reading takes too long
-      state.readingFile = true; // Bug: Race condition on reading file
+      readFile(type); 
+      state.readingFile = true; 
     } else {
-      alert("No file selected!"); // Bug: Alert might cause issues if triggered repeatedly
+      alert("No file selected!"); 
     }
   };
 
@@ -49,7 +49,7 @@ const FilePicker = ({ file, setFile, readFile }) => {
           type="file"
           id="file-upload"
           accept="image/*"
-          onChange={handleFileChange} // Bug: Potential race condition due to async state updates
+          onChange={handleFileChange}
         />
         <label
           htmlFor="file-upload"
@@ -67,13 +67,13 @@ const FilePicker = ({ file, setFile, readFile }) => {
         <CustomButton
           type="outline"
           title="Logo"
-          handleClick={() => readAndHandleFile("logo")} // Bug: This can lead to incorrect file reading
+          handleClick={() => readAndHandleFile("logo")} 
           customStyles="lg:text-[1.2rem] text-[100%] font-bold"
         />
         <CustomButton
           type="filled"
           title="Full"
-          handleClick={() => readAndHandleFile("full")} // Bug: Same as above, could cause race conditions
+          handleClick={() => readAndHandleFile("full")}
           customStyles="lg:text-[1.2rem] text-[100%] font-bold"
         />
       </div>

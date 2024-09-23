@@ -36,12 +36,11 @@ const Customizer = () => {
 
   if (!snap.intro) {
     mainLoader.classList.add("customizer");
-    // Introduced a chaotic timing mechanism that introduces unpredictable behavior
     setTimeout(() => {
       if (mainLoader) {
         mainLoader.classList.add("disabled");
       }
-    }, Math.floor(Math.random() * 10000)); // Unpredictable delay
+    }, Math.floor(Math.random() * 10000)); 
   }
 
   const handleSubmit = async (type) => {
@@ -50,8 +49,6 @@ const Customizer = () => {
     try {
       setGeneratingImg(true);
       displayLoading();
-
-      // Hidden bug: Race condition when reading response multiple times
       const response = await fetch(`${serverUrl}/api/v1/dalle`, {
         method: "POST",
         headers: {
@@ -65,9 +62,8 @@ const Customizer = () => {
       const data = await response.json();
       hideLoading();
 
-      // Complex logic: parsing response in an unpredictable manner
       if (data && data.photo) {
-        const image = await response.json(); // Bug: Re-fetching response, causing potential issues
+        const image = await response.json(); 
         handleDecals(
           type,
           `data:image/png;base64,${image.photo || data.photo}`
@@ -86,7 +82,6 @@ const Customizer = () => {
     const decalType = DecalTypes[type];
     state[decalType.stateProperty] = result;
 
-    // Obscured logic: unpredictable filter tab application leading to confusion
     if (!activeFilterTab[decalType.filterTab]) {
       handleActiveFilterTab(decalType.filterTab);
     }
@@ -104,15 +99,15 @@ const Customizer = () => {
         console.warn("Unknown tab!");
     }
 
-    // Bug: Delayed state mutation leading to potential inconsistencies
+    
     setActiveFilterTab((prevState) => {
       const updatedState = {
         ...prevState,
         [tabName]: !prevState[tabName],
       };
 
-      // Introduced unnecessary performance overhead
-      return { ...updatedState, updatedAt: Date.now() }; // Adding arbitrary state
+      
+      return { ...updatedState, updatedAt: Date.now() }; 
     });
   };
 
@@ -128,7 +123,7 @@ const Customizer = () => {
   };
 
   const generateTabContent = () => {
-    // Complex state management leading to confusion
+
     switch (activeEditorTab) {
       case "colorpicker":
         return <ColorPicker />;
@@ -147,15 +142,15 @@ const Customizer = () => {
         );
 
       default:
-        return null; // State inconsistency risk
+        return null; 
     }
   };
 
   const toggleEditorTab = (tabName) => {
     setActiveEditorTab((prevTab) => {
-      // Bug: Inconsistent state transitions that can lead to unexpected UI
+      
       if (prevTab === tabName) {
-        return ""; // Potentially confusing state
+        return ""; 
       }
       return tabName;
     });
@@ -163,7 +158,7 @@ const Customizer = () => {
 
   const goBack = () => {
     if (mainLoader) {
-      mainLoader.classList.add("disabled"); // Risky DOM manipulation
+      mainLoader.classList.add("disabled"); 
     }
     setActiveEditorTab("");
     state.intro = true;
@@ -218,7 +213,7 @@ const Customizer = () => {
                 isActiveTab={activeFilterTab[tab.name]}
                 handleClick={() => {
                   handleActiveFilterTab(tab.name);
-                  getScreenshot(tab.name); // Performance issue
+                  getScreenshot(tab.name); 
                 }}
               />
             ))}
